@@ -207,9 +207,15 @@ package org.ranapat.resourceloader {
 			var _currentUid:uint = this.current.uid;
 			var _currentBundle:String = this.current.bundle;
 			var _currentRequired:Boolean = this.current.required;
+			var _currentRetries:uint = this.current.timeoutRetries;
 
 			this.current.status = ResourceLoaderConstants.TIMEOUT;
 			this.cache.remove(this.current.url);
+			if (_currentRetries < ResourceLoaderSettings.RESOURCE_LOADER_TIMEOUT_AUTO_RETRIES) {
+				++this.current.timeoutRetries;
+				this.current.status = ResourceLoaderConstants.PENDING;
+				this.progress.push(this.current);
+			}
 			this.current = null;
 
 			this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT));
@@ -265,9 +271,15 @@ package org.ranapat.resourceloader {
 			var _currentUid:uint = this.current.uid;
 			var _currentBundle:String = this.current.bundle;
 			var _currentRequired:Boolean = this.current.required;
+			var _currentRetries:uint = this.current.generalRetries;
 
 			this.current.status = ResourceLoaderConstants.ERROR;
 			this.cache.remove(this.current.url);
+			if (_currentRetries < ResourceLoaderSettings.RESOURCE_LOADER_GENERAL_AUTO_RETRIES) {
+				++this.current.generalRetries;
+				this.current.status = ResourceLoaderConstants.PENDING;
+				this.progress.push(this.current);
+			}
 			this.current = null;
 
 			this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString()));

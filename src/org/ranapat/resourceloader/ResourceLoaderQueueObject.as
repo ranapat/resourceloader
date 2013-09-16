@@ -10,6 +10,8 @@ package org.ranapat.resourceloader
 		public var parameters:Vector.<String>;
 		public var bytesTotal:Number;
 		public var bytesLoaded:Number;
+		public var timeoutRetries:uint;
+		public var generalRetries:uint;
 
 		public function ResourceLoaderQueueObject(
 			uid:uint,
@@ -28,6 +30,8 @@ package org.ranapat.resourceloader
 
 			this.bytesTotal = 0;
 			this.bytesLoaded = 0;
+			this.timeoutRetries = 0;
+			this.generalRetries = 0;
 			this.status = ResourceLoaderConstants.PENDING;
 		}
 

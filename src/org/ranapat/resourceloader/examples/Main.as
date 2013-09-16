@@ -33,7 +33,7 @@ package org.ranapat.resourceloader.examples {
 			
 			trace("try to get the class :: " + ResourceClasses.instance.getClass("example.package.SomeTestClassA"));
 			
-			trace("try to load asset :: " + this.loader.load("../assets/assetsA.swf", 1, "b1", true));
+			trace("try to load asset :: " + this.loader.load("../assets/assetsA_.swf", 1, "b1", true));
 			trace("try to load asset :: " + this.loader.load("../assets/assetsB.swf", 2, "b1"));
 		}
 		
