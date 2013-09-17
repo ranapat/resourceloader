@@ -10,6 +10,7 @@ package org.ranapat.resourceloader.examples {
 	import org.ranapat.resourceloader.events.ResourceLoaderProgressEvent;
 	import org.ranapat.resourceloader.ResourceClasses;
 	import org.ranapat.resourceloader.ResourceLoader;
+	import org.ranapat.resourceloader.ResourceLoaderHelper;
 	
 	public class Main extends Sprite {
 		private var loader:ResourceLoader;
@@ -33,7 +34,8 @@ package org.ranapat.resourceloader.examples {
 			
 			trace("try to get the class :: " + ResourceClasses.instance.getClass("example.package.SomeTestClassA"));
 			
-			trace("try to load asset :: " + this.loader.load("../assets/assetsA_.swf", 1, "b1", true));
+			trace("try to load asset :: " + this.loader.load("../assets/assetsA.swf", 1, "b1", true));
+			trace("try to load asset :: " + this.loader.load("../assets/preloader.png", 1, "b1", true));
 			trace("try to load asset :: " + this.loader.load("../assets/assetsB.swf", 2, "b1"));
 		}
 		
@@ -50,6 +52,10 @@ package org.ranapat.resourceloader.examples {
 		private function handleComplete(e:ResourceLoaderCompleteEvent):void 
 		{
 			trace("complete...." + e.uid + " .. " + e.loaderTarget + " .. " + e.applicationDomain)
+			
+			if (e.uid == 2) {
+				this.addChild(ResourceLoaderHelper.getDispalyObject(e.loaderTarget));
+			}
 		}
 		
 		private function handleClassLoaded(e:ResourceLoaderClassLoadedEvent):void 
