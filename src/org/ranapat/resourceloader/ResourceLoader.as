@@ -258,10 +258,10 @@ package org.ranapat.resourceloader {
 			this.current = null;
 
 			this.dispatchEvent(new ResourceLoaderCompleteEvent(_currentUid, e.target, e.target.applicationDomain));
-			this.handleMassSignalDispatch(_currentBundle, _currentRequired);
 			if (ResourceLoaderHelper.stringKeyExistsInVector(ResourceLoaderConstants.PARAMETER_LOAD_ALL_CLASSES_FROM_APPLICATION_DOMAIN, _currentParameters)) {
 				ResourceClasses.instance.addAllClassesFromApplicationDomain(e.target.applicationDomain, e.target);
 			}
+			this.handleMassSignalDispatch(_currentBundle, _currentRequired);
 
 			this.timeoutTimer.stop();
 			this.tryLoadNext();
