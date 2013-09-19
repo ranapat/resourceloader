@@ -15,7 +15,7 @@ package org.ranapat.resourceloader.examples {
 	public class Main extends Sprite {
 		private var loader:ResourceLoader;
 		
-		public function Main():void {
+		public function Main() {
 			if (stage) init();
 			else addEventListener(Event.ADDED_TO_STAGE, init);
 		}
