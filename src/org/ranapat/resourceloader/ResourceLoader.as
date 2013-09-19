@@ -1,5 +1,6 @@
 package org.ranapat.resourceloader {
 	import flash.display.Loader;
+	import flash.display.LoaderInfo;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.events.IOErrorEvent;
@@ -38,31 +39,38 @@ package org.ranapat.resourceloader {
 		
 		private var uniqueId:uint;
 
-		private var timeoutTimer:Timer;
-		private var loader:Loader;
+		private var parallels:ResourceLoaderParallels;
 		private var progress:ResourceLoaderProgress;
 		private var cache:ResourceLoaderCache;
 		private var cacheDispatchQueue:Vector.<ResourceLoaderCacheObject>;
 		private var cacheDispatchTimer:Timer;
-		private var current:ResourceLoaderQueueObject;
 		private var completeBundlesHistory:Dictionary;
 
 		public var autoResetOnEmptyQueue:Boolean = ResourceLoaderSettings.RESOURCE_LOADER_AUTO_RESET_ON_EMPTY_QUEUE;
 
 		public function ResourceLoader() {
 			if (ResourceLoader._allowInstance) {
-				this.timeoutTimer = new Timer(ResourceLoaderSettings.RESOURCE_LOADER_TIMEOUT_INTERVAL, 1);
-				this.timeoutTimer.addEventListener(TimerEvent.TIMER, this.handleTimeoutTimer, false, 0, true);
-
-				this.loader = new Loader();
-				this.loader.addEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress, false, 0, true);
-				this.loader.contentLoaderInfo.addEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress, false, 0, true);
-				this.loader.addEventListener(Event.COMPLETE, this.handleLoaderComplete, false, 0, true);
-				this.loader.contentLoaderInfo.addEventListener(Event.COMPLETE, this.handleLoaderComplete, false, 0, true);
-				this.loader.addEventListener(IOErrorEvent.IO_ERROR, this.handleLoaderError, false, 0, true);
-				this.loader.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError, false, 0, true);
-				this.loader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, this.handleLoaderError, false, 0, true);
-				this.loader.contentLoaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError, false, 0, true);
+				this.parallels = new ResourceLoaderParallels();
+				var tmp:ResourceLoaderParallelsObject;
+				var timer:Timer;
+				var loader:Loader;
+				var length:uint = this.parallels.length;
+				for (var i:uint = 0; i < length; ++i) {
+					tmp = this.parallels.get(i);
+					
+					timer = tmp.timer;
+					timer.addEventListener(TimerEvent.TIMER, this.handleTimeoutTimer, false, 0, true);
+					
+					loader = tmp.loader;
+					loader.addEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress, false, 0, true);
+					loader.contentLoaderInfo.addEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress, false, 0, true);
+					loader.addEventListener(Event.COMPLETE, this.handleLoaderComplete, false, 0, true);
+					loader.contentLoaderInfo.addEventListener(Event.COMPLETE, this.handleLoaderComplete, false, 0, true);
+					loader.addEventListener(IOErrorEvent.IO_ERROR, this.handleLoaderError, false, 0, true);
+					loader.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError, false, 0, true);
+					loader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, this.handleLoaderError, false, 0, true);
+					loader.contentLoaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError, false, 0, true);
+				}
 
 				this.cache = new ResourceLoaderCache();
 				this.cacheDispatchQueue = new Vector.<ResourceLoaderCacheObject>();
@@ -78,25 +86,39 @@ package org.ranapat.resourceloader {
 		}
 
 		public function destroy():void {
-			this.timeoutTimer.removeEventListener(TimerEvent.TIMER, this.handleTimeoutTimer);
-			this.timeoutTimer.stop();
-			this.timeoutTimer = null;
-
-			this.loader.removeEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress);
-			this.loader.contentLoaderInfo.removeEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress);
-			this.loader.removeEventListener(Event.COMPLETE, this.handleLoaderComplete);
-			this.loader.contentLoaderInfo.removeEventListener(Event.COMPLETE, this.handleLoaderComplete);
-			this.loader.removeEventListener(IOErrorEvent.IO_ERROR, handleLoaderError);
-			this.loader.uncaughtErrorEvents.removeEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError);
-			this.loader.contentLoaderInfo.removeEventListener(IOErrorEvent.IO_ERROR, this.handleLoaderError);
-			this.loader.contentLoaderInfo.uncaughtErrorEvents.removeEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError);
-
-			if (this.loader.content) {
-				this.loader.unloadAndStop(false);
-			} else {
-				this.loader.close();
+			var tmp:ResourceLoaderParallelsObject;
+			var timer:Timer;
+			var loader:Loader;
+			var length:uint = this.parallels.length;
+			for (var i:uint = 0; i < length; ++i) {
+				tmp = this.parallels.get(i);
+				
+				timer = tmp.timer;
+				timer.removeEventListener(TimerEvent.TIMER, this.handleTimeoutTimer);
+				timer.stop();
+				timer = null;
+				tmp.timer = null;
+				
+				loader = tmp.loader;
+				loader.removeEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress);
+				loader.contentLoaderInfo.removeEventListener(ProgressEvent.PROGRESS, this.handleLoaderProgress);
+				loader.removeEventListener(Event.COMPLETE, this.handleLoaderComplete);
+				loader.contentLoaderInfo.removeEventListener(Event.COMPLETE, this.handleLoaderComplete);
+				loader.removeEventListener(IOErrorEvent.IO_ERROR, handleLoaderError);
+				loader.uncaughtErrorEvents.removeEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError);
+				loader.contentLoaderInfo.removeEventListener(IOErrorEvent.IO_ERROR, this.handleLoaderError);
+				loader.contentLoaderInfo.uncaughtErrorEvents.removeEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, this.handleLoaderError);
+				if (loader.content) {
+					loader.unloadAndStop(false);
+				} else {
+					loader.close();
+				}
+				loader = null;
+				tmp.loader = null;
+				
+				tmp.current = null;
 			}
-			this.loader = null;
+			this.parallels = null;
 
 			this.progress = null;
 
@@ -164,7 +186,7 @@ package org.ranapat.resourceloader {
 		}
 
 		private function tryLoadNext():void {
-			if (!this.timeoutTimer.running) {
+			if (this.parallels.anyFree) {
 				this.loadNext();
 			}
 		}
@@ -174,19 +196,21 @@ package org.ranapat.resourceloader {
 			if (tmp) {
 				tmp.status = ResourceLoaderConstants.LOADING;
 				this.completeBundlesHistory[tmp.bundle] = false;
+				
+				var free:ResourceLoaderParallelsObject = this.parallels.free;
+				var timer:Timer = free.timer;
+				var loader:Loader = free.loader;
 
-				this.timeoutTimer.reset();
-				this.timeoutTimer.start();
+				timer.reset();
+				timer.start();
 
-				this.loader.load(
+				loader.load(
 					new URLRequest(tmp.url),
 					new LoaderContext(false, new ApplicationDomain(ApplicationDomain.currentDomain))
 				);
 
-				this.current = tmp;
+				free.current = tmp;
 			} else {
-				this.current = null;
-
 				if (this.autoResetOnEmptyQueue) {
 					this.progress.reset();
 				}
@@ -204,22 +228,31 @@ package org.ranapat.resourceloader {
 		}
 
 		private function handleTimeoutTimer(e:TimerEvent):void {
-			var _currentUid:uint = this.current.uid;
-			var _currentBundle:String = this.current.bundle;
-			var _currentRequired:Boolean = this.current.required;
-			var _currentRetries:uint = this.current.timeoutRetries;
+			var current:ResourceLoaderQueueObject = this.parallels.currentByTimer(e.target as Timer);
+			if (current) {
+				var _currentUid:uint = current.uid;
+				var _currentBundle:String = current.bundle;
+				var _currentRequired:Boolean = current.required;
+				var _currentRetries:uint = current.timeoutRetries;
 
-			this.current.status = ResourceLoaderConstants.TIMEOUT;
-			this.cache.remove(this.current.url);
-			if (_currentRetries < ResourceLoaderSettings.RESOURCE_LOADER_TIMEOUT_AUTO_RETRIES) {
-				++this.current.timeoutRetries;
-				this.current.status = ResourceLoaderConstants.PENDING;
-				this.progress.push(this.current);
+				current.status = ResourceLoaderConstants.TIMEOUT;
+				this.cache.remove(current.url);
+				if (_currentRetries < ResourceLoaderSettings.RESOURCE_LOADER_TIMEOUT_AUTO_RETRIES) {
+					++current.timeoutRetries;
+					current.status = ResourceLoaderConstants.PENDING;
+					this.progress.push(current);
+				}
+				
+				this.parallels.unsetCurrent(current);
+				
+				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT));
+				this.handleMassEventDispatch(_currentBundle, _currentRequired);
 			}
-			this.current = null;
-
-			this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT));
-			this.handleMassEventDispatch(_currentBundle, _currentRequired);
+			
+			var loader:Loader = this.parallels.loaderByTimer(e.target as Timer);
+			if (loader) {
+				loader.close();
+			}
 
 			this.tryLoadNext();
 		}
@@ -236,59 +269,79 @@ package org.ranapat.resourceloader {
 		}
 
 		private function handleLoaderProgress(e:ProgressEvent):void {
-			this.current.bytesTotal = e.bytesTotal;
-			this.current.bytesLoaded = e.bytesLoaded;
+			var current:ResourceLoaderQueueObject = this.parallels.currentByLoader((e.target as LoaderInfo).loader);
+			if (current) {
+				current.bytesTotal = e.bytesTotal;
+				current.bytesLoaded = e.bytesLoaded;
+				
+				this.dispatchEvent(new ResourceLoaderProgressEvent(current.uid, progress.getProgress(current.bundle), current.bundle));
+			}
 			
-			this.timeoutTimer.reset();
-			this.timeoutTimer.start();
-
-			this.dispatchEvent(new ResourceLoaderProgressEvent(current.uid, progress.getProgress(current.bundle), current.bundle));
+			var timer:Timer = this.parallels.timerByLoader((e.target as LoaderInfo).loader);
+			if (timer) {
+				timer.reset();
+				timer.start();
+			}
 		}
 
 		private function handleLoaderComplete(e:Event):void {
-			var _currentUid:uint = this.current.uid;
-			var _currentBundle:String = this.current.bundle;
-			var _currentRequired:Boolean = this.current.required;
-			var _currentParameters:Vector.<String> = this.current.parameters;
+			var current:ResourceLoaderQueueObject = this.parallels.currentByLoader((e.target as LoaderInfo).loader);
+			if (current) {
+				var _currentUid:uint = current.uid;
+				var _currentBundle:String = current.bundle;
+				var _currentRequired:Boolean = current.required;
+				var _currentParameters:Vector.<String> = current.parameters;
 
-			this.cache.add(this.current.url, new ResourceLoaderCacheObject(
-					_currentUid,
-					e.target,
-					e.target.applicationDomain
-			));
+				this.cache.add(current.url, new ResourceLoaderCacheObject(
+						_currentUid,
+						e.target,
+						e.target.applicationDomain
+				));
 
-			this.current.status = ResourceLoaderConstants.COMPLETE;
-			this.current = null;
-
-			this.dispatchEvent(new ResourceLoaderCompleteEvent(_currentUid, e.target, e.target.applicationDomain));
-			if (ResourceLoaderHelper.stringKeyExistsInVector(ResourceLoaderConstants.PARAMETER_LOAD_ALL_CLASSES_FROM_APPLICATION_DOMAIN, _currentParameters)) {
-				ResourceClasses.instance.addAllClassesFromApplicationDomain(e.target.applicationDomain, e.target);
+				current.status = ResourceLoaderConstants.COMPLETE;
+				
+				this.parallels.unsetCurrent(current);
+				
+				this.dispatchEvent(new ResourceLoaderCompleteEvent(_currentUid, e.target, e.target.applicationDomain));
+				if (ResourceLoaderHelper.stringKeyExistsInVector(ResourceLoaderConstants.PARAMETER_LOAD_ALL_CLASSES_FROM_APPLICATION_DOMAIN, _currentParameters)) {
+					ResourceClasses.instance.addAllClassesFromApplicationDomain(e.target.applicationDomain, e.target);
+				}
+				this.handleMassEventDispatch(_currentBundle, _currentRequired);
 			}
-			this.handleMassEventDispatch(_currentBundle, _currentRequired);
 
-			this.timeoutTimer.stop();
+			var timer:Timer = this.parallels.timerByLoader((e.target as LoaderInfo).loader)
+			if (timer) {
+				timer.stop();
+			}
 			this.tryLoadNext();
 		}
 
 		private function handleLoaderError(e:IOErrorEvent):void {
-			var _currentUid:uint = this.current.uid;
-			var _currentBundle:String = this.current.bundle;
-			var _currentRequired:Boolean = this.current.required;
-			var _currentRetries:uint = this.current.generalRetries;
+			var current:ResourceLoaderQueueObject = this.parallels.currentByLoader((e.target as LoaderInfo).loader);
+			if (current) {
+				var _currentUid:uint = current.uid;
+				var _currentBundle:String = current.bundle;
+				var _currentRequired:Boolean = current.required;
+				var _currentRetries:uint = current.generalRetries;
 
-			this.current.status = ResourceLoaderConstants.ERROR;
-			this.cache.remove(this.current.url);
-			if (_currentRetries < ResourceLoaderSettings.RESOURCE_LOADER_GENERAL_AUTO_RETRIES) {
-				++this.current.generalRetries;
-				this.current.status = ResourceLoaderConstants.PENDING;
-				this.progress.push(this.current);
+				current.status = ResourceLoaderConstants.ERROR;
+				this.cache.remove(current.url);
+				if (_currentRetries < ResourceLoaderSettings.RESOURCE_LOADER_GENERAL_AUTO_RETRIES) {
+					++current.generalRetries;
+					current.status = ResourceLoaderConstants.PENDING;
+					this.progress.push(current);
+				}
+				
+				this.parallels.unsetCurrent(current);
+
+				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString()));
+				this.handleMassEventDispatch(_currentBundle, _currentRequired);
 			}
-			this.current = null;
 
-			this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString()));
-			this.handleMassEventDispatch(_currentBundle, _currentRequired);
-
-			this.timeoutTimer.stop();
+			var timer:Timer = this.parallels.timerByLoader((e.target as LoaderInfo).loader)
+			if (timer) {
+				timer.stop();
+			}
 			this.tryLoadNext();
 		}
 	}

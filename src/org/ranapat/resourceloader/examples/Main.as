@@ -35,8 +35,14 @@ package org.ranapat.resourceloader.examples {
 			trace("try to get the class :: " + ResourceClasses.instance.getClass("example.package.SomeTestClassA"));
 			
 			trace("try to load asset :: " + this.loader.load("../assets/assetsA.swf", 1, "b1", true));
-			trace("try to load asset :: " + this.loader.load("../assets/preloader.png", 1, "b1", true));
-			trace("try to load asset :: " + this.loader.load("../assets/assetsB.swf", 2, "b1"));
+			trace("try to load asset :: " + this.loader.load("../assets/preloader.png", 1, "b2", true));
+			trace("try to load asset :: " + this.loader.load("../assets/assetsB.swf", 2, "b3"));
+			
+			TweenLite.delayedCall(5, this.handleDelayToObserve);
+		}
+		
+		private function handleDelayToObserve():void {
+			trace("we are here...")
 		}
 		
 		private function handleProgress(e:ResourceLoaderProgressEvent):void 
