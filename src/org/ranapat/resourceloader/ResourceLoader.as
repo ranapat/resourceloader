@@ -193,7 +193,7 @@ package org.ranapat.resourceloader {
 			}
 		}
 
-		private function handleMassSignalDispatch(_currentBundle:String, _currentRequired:Boolean):void {
+		private function handleMassEventDispatch(_currentBundle:String, _currentRequired:Boolean):void {
 			if (_currentRequired && this.progress.haveRequired(_currentBundle) && !this.progress.isRequiredPending(_currentBundle)) {
 				this.dispatchEvent(new ResourceLoaderAllRequiredLoadedEvent(_currentBundle));
 			}
@@ -219,7 +219,7 @@ package org.ranapat.resourceloader {
 			this.current = null;
 
 			this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT));
-			this.handleMassSignalDispatch(_currentBundle, _currentRequired);
+			this.handleMassEventDispatch(_currentBundle, _currentRequired);
 
 			this.tryLoadNext();
 		}
@@ -264,7 +264,7 @@ package org.ranapat.resourceloader {
 			if (ResourceLoaderHelper.stringKeyExistsInVector(ResourceLoaderConstants.PARAMETER_LOAD_ALL_CLASSES_FROM_APPLICATION_DOMAIN, _currentParameters)) {
 				ResourceClasses.instance.addAllClassesFromApplicationDomain(e.target.applicationDomain, e.target);
 			}
-			this.handleMassSignalDispatch(_currentBundle, _currentRequired);
+			this.handleMassEventDispatch(_currentBundle, _currentRequired);
 
 			this.timeoutTimer.stop();
 			this.tryLoadNext();
@@ -286,7 +286,7 @@ package org.ranapat.resourceloader {
 			this.current = null;
 
 			this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString()));
-			this.handleMassSignalDispatch(_currentBundle, _currentRequired);
+			this.handleMassEventDispatch(_currentBundle, _currentRequired);
 
 			this.timeoutTimer.stop();
 			this.tryLoadNext();
