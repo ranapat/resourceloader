@@ -238,6 +238,9 @@ package org.ranapat.resourceloader {
 		private function handleLoaderProgress(e:ProgressEvent):void {
 			this.current.bytesTotal = e.bytesTotal;
 			this.current.bytesLoaded = e.bytesLoaded;
+			
+			this.timeoutTimer.reset();
+			this.timeoutTimer.start();
 
 			this.dispatchEvent(new ResourceLoaderProgressEvent(current.uid, progress.getProgress(current.bundle), current.bundle));
 		}
