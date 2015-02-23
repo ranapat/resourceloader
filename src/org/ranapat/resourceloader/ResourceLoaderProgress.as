@@ -50,6 +50,25 @@ package org.ranapat.resourceloader {
 			
 			return loaded / total * 100;
 		}
+		
+		public function anyBundleInProgress():Boolean {
+			var complete:Boolean = false;
+
+			var _queue:Vector.<ResourceLoaderQueueObject> = this.queue;
+			var length:uint = _queue.length;
+			var tmp:ResourceLoaderQueueObject;
+			for (var i:uint = 0; i < length && !complete; ++i) {
+				tmp = _queue[i];
+				if (
+					tmp.status == ResourceLoaderConstants.PENDING
+					|| tmp.status == ResourceLoaderConstants.LOADING
+				) {
+					complete = true;
+				}
+			}
+
+			return complete;
+		}
 
 		public function isBundleNotInProgress(bundle:String):Boolean {
 			var complete:Boolean = true;

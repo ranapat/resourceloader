@@ -210,10 +210,6 @@ package org.ranapat.resourceloader {
 				);
 
 				free.current = tmp;
-			} else {
-				if (this.autoResetOnEmptyQueue) {
-					this.progress.reset();
-				}
 			}
 		}
 
@@ -224,6 +220,10 @@ package org.ranapat.resourceloader {
 			if (this.progress.isBundleNotInProgress(_currentBundle)) {
 				this.completeBundlesHistory[_currentBundle] = true;
 				this.dispatchEvent(new ResourceLoaderBundleCompleteEvent(_currentBundle));
+			}
+			
+			if (!this.progress.anyBundleInProgress() && this.autoResetOnEmptyQueue) {
+				this.progress.reset();
 			}
 		}
 
