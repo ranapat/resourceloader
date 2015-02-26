@@ -212,6 +212,12 @@ package org.ranapat.resourceloader {
 				free.current = tmp;
 			}
 		}
+		
+		private function tryAutoReset():void {
+			if (!this.progress.anyBundleInProgress() && this.autoResetOnEmptyQueue) {
+				this.progress.reset();
+			}
+		}
 
 		private function handleMassEventDispatch(_currentBundle:String, _currentRequired:Boolean):void {
 			if (_currentRequired && this.progress.haveRequired(_currentBundle) && !this.progress.isRequiredPending(_currentBundle)) {
@@ -220,10 +226,6 @@ package org.ranapat.resourceloader {
 			if (this.progress.isBundleNotInProgress(_currentBundle)) {
 				this.completeBundlesHistory[_currentBundle] = true;
 				this.dispatchEvent(new ResourceLoaderBundleCompleteEvent(_currentBundle));
-			}
-			
-			if (!this.progress.anyBundleInProgress() && this.autoResetOnEmptyQueue) {
-				this.progress.reset();
 			}
 		}
 
@@ -246,7 +248,7 @@ package org.ranapat.resourceloader {
 				this.parallels.unsetCurrent(current);
 				
 				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT));
-				this.handleMassEventDispatch(_currentBundle, _currentRequired);
+				this.tryAutoReset();
 			}
 			
 			var loader:Loader = this.parallels.loaderByTimer(e.target as Timer);
@@ -307,6 +309,7 @@ package org.ranapat.resourceloader {
 					ResourceClasses.instance.addAllClassesFromApplicationDomain(e.target.applicationDomain, e.target);
 				}
 				this.handleMassEventDispatch(_currentBundle, _currentRequired);
+				this.tryAutoReset();
 			}
 
 			var timer:Timer = this.parallels.timerByLoader((e.target as LoaderInfo).loader)
@@ -335,7 +338,7 @@ package org.ranapat.resourceloader {
 				this.parallels.unsetCurrent(current);
 
 				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString()));
-				this.handleMassEventDispatch(_currentBundle, _currentRequired);
+				this.tryAutoReset();
 			}
 
 			var timer:Timer = this.parallels.timerByLoader((e.target as LoaderInfo).loader)
