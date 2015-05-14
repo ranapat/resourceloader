@@ -304,10 +304,10 @@ package org.ranapat.resourceloader {
 				
 				this.parallels.unsetCurrent(current);
 				
-				this.dispatchEvent(new ResourceLoaderCompleteEvent(_currentUid, e.target, e.target.applicationDomain));
 				if (ResourceLoaderHelper.stringKeyExistsInVector(ResourceLoaderConstants.PARAMETER_LOAD_ALL_CLASSES_FROM_APPLICATION_DOMAIN, _currentParameters)) {
 					ResourceClasses.instance.addAllClassesFromApplicationDomain(e.target.applicationDomain, e.target);
 				}
+				this.dispatchEvent(new ResourceLoaderCompleteEvent(_currentUid, e.target, e.target.applicationDomain));
 				this.handleMassEventDispatch(_currentBundle, _currentRequired);
 				this.tryAutoReset();
 			}
