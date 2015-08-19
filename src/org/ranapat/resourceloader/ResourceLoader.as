@@ -253,7 +253,7 @@ package org.ranapat.resourceloader {
 			
 			var loader:Loader = this.parallels.loaderByTimer(e.target as Timer);
 			if (loader) {
-				loader.close();
+				try { loader.close(); } catch (e:Error) { /**/ }
 			}
 
 			this.tryLoadNext();
