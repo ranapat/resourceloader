@@ -172,6 +172,10 @@ package org.ranapat.resourceloader {
 				return this.uniqueId;
 			}
 		}
+		
+		public function markBundleNotComplete(bundle:String):void {
+			this.completeBundlesHistory[bundle] = false;
+		}
 
 		public function isBundleComplete(bundle:String):Boolean {
 			return this.completeBundlesHistory[bundle];
