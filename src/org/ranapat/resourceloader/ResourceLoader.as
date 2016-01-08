@@ -174,11 +174,11 @@ package org.ranapat.resourceloader {
 		}
 		
 		public function markBundleNotComplete(bundle:String):void {
-			this.completeBundlesHistory[bundle] = false;
+			this.completeBundlesHistory[bundle] = -1;
 		}
 
 		public function isBundleComplete(bundle:String):Boolean {
-			return this.completeBundlesHistory[bundle];
+			return this.completeBundlesHistory[bundle] == 1;
 		}
 
 		public function getBundleProgress(bundle:String):Number {
@@ -199,7 +199,7 @@ package org.ranapat.resourceloader {
 			var tmp:ResourceLoaderQueueObject = this.progress.next;
 			if (tmp) {
 				tmp.status = ResourceLoaderConstants.LOADING;
-				this.completeBundlesHistory[tmp.bundle] = false;
+				this.completeBundlesHistory[tmp.bundle] = 0;
 				
 				var free:ResourceLoaderParallelsObject = this.parallels.free;
 				var timer:Timer = free.timer;
@@ -227,8 +227,8 @@ package org.ranapat.resourceloader {
 			if (_currentRequired && this.progress.haveRequired(_currentBundle) && !this.progress.isRequiredPending(_currentBundle)) {
 				this.dispatchEvent(new ResourceLoaderAllRequiredLoadedEvent(_currentBundle));
 			}
-			if (this.progress.isBundleNotInProgress(_currentBundle)) {
-				this.completeBundlesHistory[_currentBundle] = true;
+			if (this.progress.isBundleNotInProgress(_currentBundle) && this.completeBundlesHistory[_currentBundle] != -1) {
+				this.completeBundlesHistory[_currentBundle] = 1;
 				this.dispatchEvent(new ResourceLoaderBundleCompleteEvent(_currentBundle));
 			}
 		}
@@ -251,7 +251,7 @@ package org.ranapat.resourceloader {
 				
 				this.parallels.unsetCurrent(current);
 				
-				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT));
+				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, ResourceLoaderConstants.FAIL_REASON_TIMEOUT, _currentBundle));
 				this.tryAutoReset();
 			}
 			
@@ -341,7 +341,7 @@ package org.ranapat.resourceloader {
 				
 				this.parallels.unsetCurrent(current);
 
-				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString()));
+				this.dispatchEvent(new ResourceLoaderFailEvent(_currentUid, e.toString(), _currentBundle));
 				this.tryAutoReset();
 			}
 
